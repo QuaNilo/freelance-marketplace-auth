@@ -1,0 +1,23 @@
+use std::net::SocketAddr;
+use axum::Server;
+use crate::config::Settings;
+use tracing::{info, error};
+
+mod config;
+mod routes;
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt::init();
+    dotenv::dotenv().ok();
+    let settings = Settings::new();
+
+    let app = routes::router();
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    println!("Listening on {}", addr);
+    
+    Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
