@@ -34,8 +34,7 @@ async fn check_authorization(Json(payload): Json<ResourceAuthorizationParams>) -
     
     let user: Option<User> = postgres.get_item_by_id(
         payload.user_id,
-        "users",
-        "user_id"
+        "SELECT * FROM users WHERE user_id = $1"
     ).await.unwrap_or_else(|e|{
         eprintln!("Database error: {:?}", e);
         None
@@ -51,19 +50,33 @@ async fn check_authorization(Json(payload): Json<ResourceAuthorizationParams>) -
 async fn check_route_authorization(Json(payload): Json<RouteAuthorizationParams>) -> Json<Response> {
     let settings = Settings::new();
     let postgres = PostgresClient::new(&settings.sql.connection_string).await.expect("Failed to connect to Postgres");
+    
+    let query: &str = "SELECT * FROM users JOIN roles ON users.role_id = roles.role_id WHERE users.user_id = $1";
     let user: Option<User> = postgres.get_item_by_id(
         payload.user_id,
-        "users",
-        "user_id"
+        query
     ).await.unwrap_or_else(|e|{
         eprintln!("Database error: {:?}", e);
         None
     });
-    let public_routes: Vec<Route> = Route::get_routes().await;
-    let valid = public_routes.iter().any(|route|  route.path == payload.route);
-    if(!valid){Json(Response{authorized: false})
+    let all_routes: Vec<Route> = Route::get_routes().await;
+    let valid = all_routes.iter().any(|route|  route.path == payload.route);
+    if !valid {
+        return Json(Response{authorized: false});
+    }
+        
+    let route : Option<&Route> = all_routes.iter().find(|route| route.path == payload.route);
+    if let Some(route) = route {
+        if !route.is_private {
+            return Json(Response{authorized: true});
+        }
+    }
     
     
+    
+    Json(
+        Response {authorized: true}
+    )
     
 }
 

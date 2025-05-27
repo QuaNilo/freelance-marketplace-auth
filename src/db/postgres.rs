@@ -14,6 +14,8 @@ pub struct User {
     wallet_type_id: i32,
     last_login: DateTime<Utc>,
     role_id: i32,
+    role_name: Option<String>,
+    role_description: Option<String>,
 }
 
 impl PostgresClient {
@@ -25,13 +27,11 @@ impl PostgresClient {
     pub async fn get_item_by_id<T>(
         &self, 
         resource_id: i32,
-        table_name: &str,
-        id_column: &str
+        query_str: &str,
     ) -> Result<Option<T>, sqlx::Error> 
     where
         T: for <'r> FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin + std::marker::Sync,
     {
-        let query_str = format!("SELECT * FROM {} WHERE {} = $1", table_name, id_column);
         let result = sqlx::query_as::<_, T>(
             &query_str
         )
