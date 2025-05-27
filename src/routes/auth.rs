@@ -1,15 +1,24 @@
 use axum::{routing::get, Json, Router};
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use crate::config::{Mongo, Settings};
+use crate::db::mongo::MongoClient;
+use crate::db::postgres::{PostgresClient, User};
 use crate::utils::notifications;
 use crate::utils::notifications::NotificationsSchema;
+use crate::utils::auth_utils::Route;
 
 #[derive(Deserialize)]
-struct AuthorizationParams {
-    user_id: i16,
+struct ResourceAuthorizationParams {
+    user_id: i32,
     resource_type: String,
-    resource_id: i16,
+    resource_id: i32,
     action: String,
+}
+#[derive(Deserialize)]
+struct RouteAuthorizationParams {
+    route: String,
+    user_id: i32,
 }
 
 #[derive(Serialize)]
@@ -17,12 +26,45 @@ struct Response {
     authorized: bool
 }
 
-async fn check_authorization(Json(payload): Json<AuthorizationParams>) -> Json<Response> {
+async fn check_authorization(Json(payload): Json<ResourceAuthorizationParams>) -> Json<Response> {
     let is_authorized = payload.user_id == 1 && payload.action.to_lowercase() == "edit";
+    let settings = Settings::new();
+    let postgres = PostgresClient::new(&settings.sql.connection_string).await.expect("Failed to connect to Postgres");
+    let mongo: MongoClient = MongoClient::new(&settings.mongo.connection_string, &settings.mongo.database_name).await.expect("Failed to connect to MongoDB");
+    
+    let user: Option<User> = postgres.get_item_by_id(
+        payload.user_id,
+        "users",
+        "user_id"
+    ).await.unwrap_or_else(|e|{
+        eprintln!("Database error: {:?}", e);
+        None
+    });
+    
+    
     
     Json(Response {
         authorized: is_authorized,
     })
+}
+
+async fn check_route_authorization(Json(payload): Json<RouteAuthorizationParams>) -> Json<Response> {
+    let settings = Settings::new();
+    let postgres = PostgresClient::new(&settings.sql.connection_string).await.expect("Failed to connect to Postgres");
+    let user: Option<User> = postgres.get_item_by_id(
+        payload.user_id,
+        "users",
+        "user_id"
+    ).await.unwrap_or_else(|e|{
+        eprintln!("Database error: {:?}", e);
+        None
+    });
+    let public_routes: Vec<Route> = Route::get_routes().await;
+    let valid = public_routes.iter().any(|route|  route.path == payload.route);
+    if(!valid){Json(Response{authorized: false})
+    
+    
+    
 }
 
 #[derive(Deserialize)]
@@ -52,4 +94,5 @@ pub fn router() -> Router {
     Router::new()
         .route("/authorization", get(check_authorization))
         .route("/notification", get(get_notification))
+        .route("/authorization/route", get(check_route_authorization))
 }
