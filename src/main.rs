@@ -2,12 +2,11 @@ mod config;
 mod routes;
 mod db;
 mod utils;
+mod models;
 
 use std::net::SocketAddr;
 use axum::Server;
 use crate::config::{Settings};
-use utils::notifications;
-use crate::utils::notifications::NotificationsSchema;
 
 #[tokio::main]
 async fn main() {

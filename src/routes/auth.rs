@@ -3,10 +3,12 @@ use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
 use crate::config::{Mongo, Settings};
 use crate::db::mongo::MongoClient;
-use crate::db::postgres::{PostgresClient, User};
-use crate::utils::notifications;
-use crate::utils::notifications::NotificationsSchema;
-use crate::utils::auth_utils::Route;
+use crate::db::postgres::{PostgresClient};
+use crate::models::route_logic::Route;
+use crate::models::sql::user::User;
+use crate::models::no_sql::notification;
+use crate::models::no_sql::notification::Notification;
+use crate::utils::auth_utils::{is_nosql_resource, is_sql_resource};
 
 #[derive(Deserialize)]
 struct ResourceAuthorizationParams {
@@ -27,23 +29,30 @@ struct Response {
 }
 
 async fn check_authorization(Json(payload): Json<ResourceAuthorizationParams>) -> Json<Response> {
-    let is_authorized = payload.user_id == 1 && payload.action.to_lowercase() == "edit";
+    assert!(is_nosql_resource(&payload.resource_type).await || is_sql_resource(&payload.resource_type).await);
     let settings = Settings::new();
     let postgres = PostgresClient::new(&settings.sql.connection_string).await.expect("Failed to connect to Postgres");
     let mongo: MongoClient = MongoClient::new(&settings.mongo.connection_string, &settings.mongo.database_name).await.expect("Failed to connect to MongoDB");
     
     let user: Option<User> = postgres.get_item_by_id(
-        payload.user_id,
+        &payload.user_id,
         "SELECT * FROM users WHERE user_id = $1"
     ).await.unwrap_or_else(|e|{
         eprintln!("Database error: {:?}", e);
         None
     });
     
+    if let Some(user) = user {
+        if user.is_deleted().await {
+            return Json(Response{authorized: false})
+        }
+    }
+    
+    
     
     
     Json(Response {
-        authorized: is_authorized,
+        authorized: true,
     })
 }
 
@@ -53,7 +62,7 @@ async fn check_route_authorization(Json(payload): Json<RouteAuthorizationParams>
     
     let query: &str = "SELECT * FROM users JOIN roles ON users.role_id = roles.role_id WHERE users.user_id = $1";
     let user: Option<User> = postgres.get_item_by_id(
-        payload.user_id,
+        &payload.user_id,
         query
     ).await.unwrap_or_else(|e|{
         eprintln!("Database error: {:?}", e);
@@ -89,8 +98,8 @@ struct ErrorResponse {
     error: String,
 }
 
-async fn get_notification(Json(payload): Json<ResourceParams>) -> Result<Json<NotificationsSchema>, (StatusCode, Json<ErrorResponse>)> {
-    let notification = notifications::get_notification(&payload.notification_id).await;
+async fn get_notification(Json(payload): Json<ResourceParams>) -> Result<Json<Notification>, (StatusCode, Json<ErrorResponse>)> {
+    let notification = Notification::get_notification(&payload.notification_id).await;
     match notification {
         Ok(notification) => Ok(Json(notification)),
         Err(e) => {

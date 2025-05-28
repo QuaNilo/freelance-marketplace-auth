@@ -38,7 +38,7 @@ impl MongoClient {
         &self,
         collection: &str,
         field: &str,
-        value: &String,
+        value: &str,
     ) -> Result<Option<T>>
     where
         T: for<'de> serde::Deserialize<'de> + Unpin + Send + Sync,
