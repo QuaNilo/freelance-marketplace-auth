@@ -1,10 +1,8 @@
-use chrono::{DateTime, Utc};
 use sqlx::{PgPool, FromRow};
 
 pub struct PostgresClient {
     pool: PgPool
 }
-
 
 impl PostgresClient {
     pub async fn new(database_url: &str) -> Result<Self, sqlx::Error> {

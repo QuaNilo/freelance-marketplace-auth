@@ -48,9 +48,6 @@ async fn check_authorization(Json(payload): Json<ResourceAuthorizationParams>) -
         }
     }
     
-    
-    
-    
     Json(Response {
         authorized: true,
     })

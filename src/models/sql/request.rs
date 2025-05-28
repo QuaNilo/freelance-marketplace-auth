@@ -17,7 +17,7 @@ pub struct Request {
 
 impl Request {
     pub async fn get_request(postgres: &PostgresClient, request_id: &i32) -> Option<Self> {
-        let query_str: String = format!("SELECT * FROM profiles WHERE profile_id = $1");
+        let query_str: String = format!("SELECT * FROM requests WHERE request_id = $1");
         let request: Option<Request> = postgres.get_item_by_id(
             request_id,
             &query_str
@@ -27,4 +27,11 @@ impl Request {
         });
         request
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, FromRow)]
+pub struct RequestStatus {
+    request_status_id: i32,
+    request_status_name: String,
+    request_status_description: String,
 }
