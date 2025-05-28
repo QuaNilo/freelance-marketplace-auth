@@ -56,62 +56,36 @@ async fn check_authorization(Json(payload): Json<ResourceAuthorizationParams>) -
 async fn check_route_authorization(Json(payload): Json<RouteAuthorizationParams>) -> Json<Response> {
     let settings = Settings::new();
     let postgres = PostgresClient::new(&settings.sql.connection_string).await.expect("Failed to connect to Postgres");
-    
+
     let query: &str = "SELECT * FROM users JOIN roles ON users.role_id = roles.role_id WHERE users.user_id = $1";
     let user: Option<User> = postgres.get_item_by_id(
         &payload.user_id,
         query
-    ).await.unwrap_or_else(|e|{
+    ).await.unwrap_or_else(|e| {
         eprintln!("Database error: {:?}", e);
         None
     });
     let all_routes: Vec<Route> = Route::get_routes().await;
-    let valid = all_routes.iter().any(|route|  route.path == payload.route);
+    let valid = all_routes.iter().any(|route| route.path == payload.route);
     if !valid {
-        return Json(Response{authorized: false});
+        return Json(Response { authorized: false });
     }
-        
-    let route : Option<&Route> = all_routes.iter().find(|route| route.path == payload.route);
+
+    let route: Option<&Route> = all_routes.iter().find(|route| route.path == payload.route);
     if let Some(route) = route {
         if !route.is_private {
-            return Json(Response{authorized: true});
+            return Json(Response { authorized: true });
         }
     }
-    
-    
-    
+
+
     Json(
-        Response {authorized: true}
+        Response { authorized: true }
     )
-    
-}
-
-#[derive(Deserialize)]
-struct ResourceParams {
-    notification_id: String,
-}
-#[derive(Serialize)]
-struct ErrorResponse {
-    error: String,
-}
-
-async fn get_notification(Json(payload): Json<ResourceParams>) -> Result<Json<Notification>, (StatusCode, Json<ErrorResponse>)> {
-    let notification = Notification::get_notification(&payload.notification_id).await;
-    match notification {
-        Ok(notification) => Ok(Json(notification)),
-        Err(e) => {
-            let error_msg = e.to_string();
-             Err((
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse { error: error_msg }),
-            ))
-        },
-    }
 }
 
 pub fn router() -> Router {
     Router::new()
         .route("/authorization", get(check_authorization))
-        .route("/notification", get(get_notification))
         .route("/authorization/route", get(check_route_authorization))
 }
