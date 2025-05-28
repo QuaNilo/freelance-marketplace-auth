@@ -43,7 +43,7 @@ async fn check_authorization(Json(payload): Json<ResourceAuthorizationParams>) -
     });
     
     if let Some(user) = user {
-        if user.is_deleted().await {
+        if user.is_deleted() {
             return Json(Response{authorized: false})
         }
     }

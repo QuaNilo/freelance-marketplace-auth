@@ -1,8 +1,8 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use crate::db::postgres::PostgresClient;
-use crate::models::sql::category::Category;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Deserialize, Serialize, Debug, FromRow)]
 pub struct SubCategory {
@@ -15,10 +15,12 @@ pub struct SubCategory {
     edition_date: Option<DateTime<Utc>>
 }
 
-impl SubCategory {
-    pub async fn get_sub_category(postgres: &PostgresClient, sub_category_id: i32) -> Option<SubCategory> {
+#[async_trait]
+impl FetchableResource for SubCategory {
+    type IdType = i32;
+    async fn fetch_by_id(db: &DbClients, sub_category_id: Self::IdType) -> Option<SubCategory> {
         let query_str: String = format!("SELECT * FROM sub_categories WHERE sub_category_id = {}", sub_category_id);
-        let sub_category: Option<SubCategory> = postgres.get_item_by_id(
+        let sub_category: Option<SubCategory> = db.postgres.get_item_by_id(
             &sub_category_id,
             &query_str,
         ).await.unwrap_or_else(|error|{

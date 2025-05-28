@@ -1,6 +1,7 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::db::mongo::MongoClient;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WishList {
@@ -20,12 +21,14 @@ pub struct WishListItems {
     requests: Vec<i32>
 }
 
-impl WishList {
-    pub async fn get_wishlist(mongo: &MongoClient, wishlist_id: &str) -> Option<WishList> {
-        let wishlist: Option<WishList> = mongo.get_by_field(
+#[async_trait]
+impl FetchableResource for WishList {
+    type IdType = String;
+    async fn fetch_by_id(db: &DbClients, wishlist_id: Self::IdType) -> Option<WishList> {
+        let wishlist: Option<WishList> = db.mongo.get_by_field(
             "Wishlist",
             "_id",
-            wishlist_id
+            &wishlist_id
         ).await.unwrap_or_else(| error | {
             eprintln!("Error getting wishlist: {}", error);
             None

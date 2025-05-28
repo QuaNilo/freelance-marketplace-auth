@@ -1,0 +1,1 @@
+pub mod fetchable_resource;

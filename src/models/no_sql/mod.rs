@@ -1,5 +1,5 @@
 pub mod notification;
-mod message;
-mod conversation;
-mod wishlist;
-mod portfolio;
+pub mod message;
+pub mod conversation;
+pub mod wishlist;
+pub mod portfolio;

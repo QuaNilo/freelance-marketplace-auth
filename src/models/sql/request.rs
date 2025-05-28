@@ -1,7 +1,8 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use crate::db::postgres::PostgresClient;
-use crate::models::sql::profile::Profile;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Debug, FromRow, Deserialize, Serialize)]
 pub struct Request {
@@ -23,6 +24,22 @@ impl Request {
             &query_str
         ).await.unwrap_or_else(|e|{
             eprintln!("Database error: {:?}", e);
+            None
+        });
+        request
+    }
+}
+
+#[async_trait]
+impl FetchableResource for Request {
+    type IdType = i32;
+    async fn fetch_by_id(db: &DbClients, request_id: Self::IdType) -> Option<Request> {
+        let query_str: String = format!("SELECT * FROM requests WHERE request_id = {}", request_id);
+        let request: Option<Request> = db.postgres.get_item_by_id(
+            &request_id,
+            &query_str,
+        ).await.unwrap_or_else(|error|{
+            eprintln!("Error getting request: {}", error);
             None
         });
         request

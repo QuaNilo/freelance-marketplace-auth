@@ -1,7 +1,8 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use crate::db::postgres::PostgresClient;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Deserialize, Serialize, FromRow, Debug)]
 pub struct Order {
@@ -14,14 +15,16 @@ pub struct Order {
     edition_date: Option<DateTime<Utc>>,
 }
 
-impl Order{
-    pub async fn get_order(postgres: &PostgresClient, milestone_id: &i32) -> Option<Self>{
-        let query_str: String = format!("SELECT * FROM orders WHERE order_id = $1");
-        let order: Option<Order> = postgres.get_item_by_id(
-            &milestone_id,
-            &query_str
-        ).await.unwrap_or_else(|error| {
-            eprintln!("Error in database : {:?}", error);
+#[async_trait]
+impl FetchableResource for Order {
+    type IdType = i32;
+    async fn fetch_by_id(db: &DbClients, order_id: Self::IdType) -> Option<Order> {
+        let query_str: String = format!("SELECT * FROM orders WHERE order_id = {}", order_id);
+        let order: Option<Order> = db.postgres.get_item_by_id(
+            &order_id,
+            &query_str,
+        ).await.unwrap_or_else(|error|{
+            eprintln!("Error getting order: {}", error);
             None
         });
         order

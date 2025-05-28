@@ -1,8 +1,8 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use crate::db::postgres::PostgresClient;
-use crate::models::sql::request::Request;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct Service {
@@ -19,14 +19,16 @@ pub struct Service {
     service_status_id: i32,
 }
 
-impl Service {
-    pub async fn get_service(postgres: &PostgresClient, service_id: &i32) -> Option<Self> {
-        let query_str: String = format!("SELECT * FROM services WHERE service_id = $1");
-        let service: Option<Service> = postgres.get_item_by_id(
-            service_id,
-            &query_str
-        ).await.unwrap_or_else(|e|{
-            eprintln!("Database error: {:?}", e);
+#[async_trait]
+impl FetchableResource for Service {
+    type IdType = i32;
+    async fn fetch_by_id(db: &DbClients, service_id: Self::IdType) -> Option<Service> {
+        let query_str: String = format!("SELECT * FROM services WHERE service_id = {}", service_id);
+        let service: Option<Service> = db.postgres.get_item_by_id(
+            &service_id,
+            &query_str,
+        ).await.unwrap_or_else(|error|{
+            eprintln!("Error getting service: {}", error);
             None
         });
         service

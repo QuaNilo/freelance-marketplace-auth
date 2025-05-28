@@ -1,6 +1,7 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::db::mongo::MongoClient;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct File {
@@ -24,12 +25,14 @@ pub struct Portfolio {
     projects: Vec<Project>
 }
 
-impl Portfolio {
-    pub async fn get_portfolio(mongo: &MongoClient, portfolio_id: &str) -> Option<Portfolio> {
-        let portfolio: Option<Portfolio> = mongo.get_by_field(
+#[async_trait]
+impl FetchableResource for Portfolio {
+    type IdType = String;
+    async fn fetch_by_id(db: &DbClients, portfolio_id: Self::IdType) -> Option<Portfolio> {
+        let portfolio: Option<Portfolio> = db.mongo.get_by_field(
             "Portfolio",
             "_id",
-            portfolio_id
+            &portfolio_id
         ).await.unwrap_or_else(| error | {
             eprintln!("Error getting portfolio: {}", error);
             None

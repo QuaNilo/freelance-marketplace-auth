@@ -1,7 +1,8 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use crate::db::postgres::PostgresClient;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Deserialize, Serialize, FromRow, Debug)]
 pub struct Proposal {
@@ -14,14 +15,17 @@ pub struct Proposal {
     edition_date: Option<DateTime<Utc>>,
 }
 
-impl Proposal {
-    pub async fn get_proposal(postgres: &PostgresClient, proposal_id: &i32) -> Option<Self> {
-        let query_str: String = format!("SELECT * FROM proposals WHERE proposal_id = $1");
-        let proposal: Option<Proposal> = postgres.get_item_by_id(
+
+#[async_trait]
+impl FetchableResource for Proposal {
+    type IdType = i32;
+    async fn fetch_by_id(db: &DbClients, proposal_id: Self::IdType) -> Option<Proposal> {
+        let query_str: String = format!("SELECT * FROM proposals WHERE proposal_id = {}", proposal_id);
+        let proposal: Option<Proposal> = db.postgres.get_item_by_id(
             &proposal_id,
-            &query_str
-        ).await.unwrap_or_else(|e| {
-            eprintln!("Error fetching proposal: {:?}", e);
+            &query_str,
+        ).await.unwrap_or_else(|error|{
+            eprintln!("Error getting proposal: {}", error);
             None
         });
         proposal

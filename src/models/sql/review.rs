@@ -1,7 +1,8 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use crate::db::postgres::PostgresClient;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Deserialize, Serialize, Debug, FromRow)]
 pub struct Review {
@@ -15,10 +16,13 @@ pub struct Review {
     edition_date: Option<DateTime<Utc>>,
 }
 
-impl Review {
-    pub async fn get_review(postgres: &PostgresClient, review_id: &i32) -> Option<Self> {
-        let query_str: String = format!("SELECT * FROM reviews WHERE review_id = {}", review_id);
-        let review: Option<Self> = postgres.get_item_by_id(
+
+#[async_trait]
+impl FetchableResource for Review {
+    type IdType = i32;
+    async fn fetch_by_id(db: &DbClients, review_id: Self::IdType) -> Option<Review> {
+        let query_str: String = format!("SELECT * FROM sub_categories WHERE review_id = {}", review_id);
+        let review: Option<Review> = db.postgres.get_item_by_id(
             &review_id,
             &query_str,
         ).await.unwrap_or_else(|error|{

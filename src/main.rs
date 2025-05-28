@@ -3,6 +3,7 @@ mod routes;
 mod db;
 mod utils;
 mod models;
+mod traits;
 
 use std::net::SocketAddr;
 use axum::Server;

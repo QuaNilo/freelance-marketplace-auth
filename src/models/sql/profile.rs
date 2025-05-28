@@ -1,8 +1,8 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use crate::db::postgres::PostgresClient;
-use crate::models::sql::user::User;
+use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Debug, FromRow, Deserialize, Serialize)]
 pub struct Profile {
@@ -16,16 +16,18 @@ pub struct Profile {
     edition_date: DateTime<Utc>,
 }
 
-impl Profile {
-    pub async fn get_profile(postgres: &PostgresClient, profile_id: &i32) -> Option<Self> {
-    let query_str: String = format!("SELECT * FROM profiles WHERE profile_id = $1");
-    let profile: Option<Profile> = postgres.get_item_by_id(
-        profile_id,
-        &query_str
-    ).await.unwrap_or_else(|e|{
-        eprintln!("Database error: {:?}", e);
-        None
-    });
-    profile
+#[async_trait]
+impl FetchableResource for Profile {
+    type IdType = i32;
+    async fn fetch_by_id(db: &DbClients, profile_id: Self::IdType) -> Option<Profile> {
+        let query_str: String = format!("SELECT * FROM profiles WHERE profile_id = {}", profile_id);
+        let profile: Option<Profile> = db.postgres.get_item_by_id(
+            &profile_id,
+            &query_str,
+        ).await.unwrap_or_else(|error|{
+            eprintln!("Error getting profile: {}", error);
+            None
+        });
+        profile
     }
 }
