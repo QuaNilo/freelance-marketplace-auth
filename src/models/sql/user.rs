@@ -6,16 +6,16 @@ use crate::traits::fetchable_resource::{DbClients, FetchableResource};
 
 #[derive(Debug, FromRow, Deserialize, Serialize)]
 pub struct User {
-    user_id: i32,
-    creation_date: DateTime<Utc>,
-    edition_date: Option<DateTime<Utc>>,
-    deleted: bool,
-    wallet_public_address: String,
-    wallet_type_id: i32,
-    last_login: DateTime<Utc>,
-    role_id: i32,
-    role_name: Option<String>,
-    role_description: Option<String>,
+    pub user_id: i32,
+    pub creation_date: DateTime<Utc>,
+    pub edition_date: Option<DateTime<Utc>>,
+    pub deleted: bool,
+    pub wallet_public_address: String,
+    pub wallet_type_id: i32,
+    pub last_login: DateTime<Utc>,
+    pub role_id: i32,
+    pub role_name: Option<String>,
+    pub role_description: Option<String>,
 }
 #[async_trait]
 impl FetchableResource for User {

@@ -3,24 +3,6 @@ use mongodb::{Client, Database, options::ClientOptions, Collection};
 use mongodb::bson::{doc, oid::ObjectId};
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Message {
-    pub sender_id: i32,
-    pub receiver_id: i32,
-    pub content: String,
-
-    pub sent_time: DateTime,
-    pub received_time: DateTime,
-
-    pub is_edited: bool,
-    pub is_viewed: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Conversation {
-    pub conversation_id: i32,
-    pub messages: Vec<Message>,
-}
 
 pub struct MongoClient {
     db: Database,
