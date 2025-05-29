@@ -71,12 +71,33 @@ async fn check_authorization(Json(payload): Json<ResourceAuthorizationParams>) -
     
     if let Some(resource) = fetch_resource_by_type(&db_clients, &payload.resource_type, &payload.resource_id.to_string()).await {
         let is_authorized = match resource {
+            // SQL
             Resource::User(user) => {
                 if user.is_deleted() { false }
                 else if  request_user.user_id != user.user_id { false }
                 else { true }
             }
+            // TODO Implement the remaining resource permissions
+            Resource::SubCategory(sub_category) => {false}
+            Resource::Category(category) => {false}
+            Resource::Transaction(transaction) => {false}
+            Resource::Order(order) => {false}
+            Resource::Proposal(proposal) => {false}
+            Resource::Milestone(milestone) => {false}
+            Resource::Service(service) => {false}
+            Resource::Request(request) => {false}
+            Resource::Profile(profile) => {false}
+            Resource::Review(review) => {false}
+            Resource::Skill(skill) => {false}
+            Resource::Role(role) => {false}
+            Resource::WalletType(wallet_type) => {false}
             
+            // NOSQL
+            Resource::Notification(notification) => {false}
+            Resource::WishList(wish_list) => {false}
+            Resource::Conversation(conversation) => {false}
+            Resource::Portfolio(portfolio) => {false}
+            Resource::Message(message) => {false}
             
             _ => {false}
         };
